@@ -50,5 +50,10 @@ def drawScores(correctFont:str, scores:dict):
     plt.title('Top 5 Font Probabilities')
     plt.xlabel('Probability')
 
+    # 在每个柱形内部添加概率值
+    for i in range(len(probabilities)):
+        plt.text(probabilities[i], i, f"{probabilities[i]:.3f}", ha='right', va='center')
+    
+    plt.subplots_adjust(left=0.28, right=0.9, bottom=0.1, top=0.9)
     # 显示图形
     plt.show()

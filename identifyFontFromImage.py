@@ -35,7 +35,7 @@ def identifyFontFromImage(imagePath: str, maxCharMatchNum: int = 5, useGrayImage
     start_time = time.time()
     boxes, estFontsize = get_words_boxes(imagePath, bleeding=0.2)
     end_time = time.time()
-    print(f"Google Vision：{end_time - start_time} 秒")
+    print(f"Google Vision：{end_time - start_time:.3f} 秒")
 
     # TODO:根据特征字符集选出charList
     charList = []
@@ -62,9 +62,9 @@ def identifyFontFromImage(imagePath: str, maxCharMatchNum: int = 5, useGrayImage
     grayImage = ha.rgb1_to_gray(image)
 
     # 对每个挑选出的字符进行模板匹配
+    start_time = time.time()
     for char in charList:
         scores = [0] * FONTLISTLEN
-        start_time = time.time()
         # TODO: 思考如何减少遍历字体次数，启发式算法，而不是傻瓜式
         for i in range(FONTLISTLEN):
             # 读取模板
@@ -80,10 +80,10 @@ def identifyFontFromImage(imagePath: str, maxCharMatchNum: int = 5, useGrayImage
             if NumMatchResult > 0:
                 scores[i] = ha.get_generic_shape_model_result(MatchResultID, 0, 'score')[0]
         end_time = time.time()
-        print(f"单字符识别：{end_time - start_time} 秒")
         # print("{}:{}".format(char['text'], scores))
         predictFontScores.append(scores)
-
+    end_time = time.time()
+    print(f"匹配识别：{end_time - start_time:.3f} 秒")
     predictFontScores = np.average(predictFontScores, axis=0)
     predictScores = {k: v for k, v in zip(FONTLIST, predictFontScores)}
     matchedFontIndex = np.argsort(-np.array(predictFontScores))[0]
@@ -98,8 +98,8 @@ if __name__ == '__main__':
 
     FONTLISTLEN = len(FONTLIST)
 
-    test_font = 'UBUNTU-REGULAR'
+    test_font = 'OPENSANS-MEDIUM'
     imagePath = 'imgs/{}.jpg'.format(test_font)
-    predictFont, predictScores = identifyFontFromImage(imagePath, maxCharMatchNum=5)
+    predictFont, predictScores = identifyFontFromImage(imagePath, maxCharMatchNum=10)
     # print(predictFont, predictScores)
     drawScores(test_font, predictScores)
