@@ -2,7 +2,6 @@ import numpy as np
 from PIL import Image, ImageDraw
 import matplotlib.pyplot as plt
 
-
 def charPath(char:str):
     if char.isupper():
         return char.lower()+'_b'

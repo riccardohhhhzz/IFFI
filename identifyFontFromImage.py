@@ -9,14 +9,15 @@ from utils import charPath, draw_boxes, drawScores
 FONTLIST = []
 FONTLISTLEN = 0
 
-def identifyFontFromImage(imagePath: str, maxCharMatchNum: int = 5, useGrayImage: bool = True):
+def identifyFontFromImage(imagePath: str, maxCharMatchNum: int = 5, useGrayImage: bool = True, computeScoreMethod: str = 'median'):
     """
     从给定的候选字体列表fontList中推测图片中的字体
 
     Input: \\
     imagePath(str): 单行文本图片路径；\\
     maxCharMatchNum(int): 用来进行模板匹配的字符最大数量；\\
-    useGrayImage(bool): 是否使用灰度图来进行模板匹配。
+    useGrayImage(bool): 是否使用灰度图来进行模板匹配；\\
+    computeScoreMethod(str): 用于计算最后得分的统计方法，可选：average、median。
 
     Output: \\
     predictFont(str): 推断出的字体类型；\\
@@ -36,6 +37,7 @@ def identifyFontFromImage(imagePath: str, maxCharMatchNum: int = 5, useGrayImage
     boxes, estFontsize = get_words_boxes(imagePath, bleeding=0.2)
     end_time = time.time()
     print(f"Google Vision：{end_time - start_time:.3f} 秒")
+    # print(boxes)
 
     # TODO:根据特征字符集选出charList
     charList = []
@@ -75,7 +77,7 @@ def identifyFontFromImage(imagePath: str, maxCharMatchNum: int = 5, useGrayImage
             ha.set_generic_shape_model_param(ModelID, 'border_shape_models', 'false')
             # 模板匹配
             ModelRegion = ha.gen_rectangle1(char['xyxy'][1], char['xyxy'][0], char['xyxy'][3], char['xyxy'][2])
-            croppedCharImage = ha.reduce_domain(grayImage, ModelRegion)
+            croppedCharImage = ha.reduce_domain(grayImage if useGrayImage else image, ModelRegion)
             MatchResultID, NumMatchResult = ha.find_generic_shape_model(croppedCharImage, ModelID)
             if NumMatchResult > 0:
                 scores[i] = ha.get_generic_shape_model_result(MatchResultID, 0, 'score')[0]
@@ -84,7 +86,10 @@ def identifyFontFromImage(imagePath: str, maxCharMatchNum: int = 5, useGrayImage
         predictFontScores.append(scores)
     end_time = time.time()
     print(f"匹配识别：{end_time - start_time:.3f} 秒")
-    predictFontScores = np.average(predictFontScores, axis=0)
+    if computeScoreMethod == 'median':
+        predictFontScores = np.median(predictFontScores, axis=0)
+    if computeScoreMethod == 'average':
+        predictFontScores = np.average(predictFontScores, axis=0)
     predictScores = {k: v for k, v in zip(FONTLIST, predictFontScores)}
     matchedFontIndex = np.argsort(-np.array(predictFontScores))[0]
     predictFont = FONTLIST[matchedFontIndex]
@@ -96,10 +101,11 @@ if __name__ == '__main__':
         fontName,_ = os.path.splitext(file)
         FONTLIST.append(fontName)
 
+    # FONTLIST = ['LATO-REGULAR', 'OPENSANS-MEDIUM', 'OPENSANS-REGULAR', 'OPENSANS-SEMIBOLD', 'UBUNTU-REGULAR']
     FONTLISTLEN = len(FONTLIST)
-
-    test_font = 'OPENSANS-MEDIUM'
+    
+    test_font = 'LATO-REGULAR'
     imagePath = 'imgs/{}.jpg'.format(test_font)
-    predictFont, predictScores = identifyFontFromImage(imagePath, maxCharMatchNum=10)
+    predictFont, predictScores = identifyFontFromImage(imagePath, maxCharMatchNum=5, computeScoreMethod='median')
     # print(predictFont, predictScores)
     drawScores(test_font, predictScores)
